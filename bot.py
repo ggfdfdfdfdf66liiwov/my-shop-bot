@@ -1,4 +1,4 @@
-"""
+""""""
 فروشگاه کانفیگ تلگرام
 نیاز: pip install python-telegram-bot==20.7
 """
@@ -36,10 +36,9 @@ def init_db():
     db = load_db()
     if not db["products"]:
         db["products"] = [
-            {"id": 1, "name": "کانفیگ ۱ ماهه",  "desc": "سرعت بالا | ترافیک نامحدود", "price": 50000,  "active": True},
-            {"id": 2, "name": "کانفیگ ۳ ماهه",  "desc": "سرعت بالا | ترافیک نامحدود", "price": 130000, "active": True},
-            {"id": 3, "name": "کانفیگ ۶ ماهه",  "desc": "سرعت بالا | ترافیک نامحدود", "price": 230000, "active": True},
-            {"id": 4, "name": "سرویس اختصاصی",   "desc": "سرور اختصاصی | پشتیبانی VIP", "price": 500000, "active": True},
+            {"id": 1, "name": "کانفیگ نامحدود ۱ ماهه", "desc": "ترافیک نامحدود | سرعت بالا", "price": 50000, "active": True, "type": "fixed"},
+            {"id": 2, "name": "کانفیگ حجمی",            "desc": "هر گیگابایت ۲٬۰۰۰ تومان | مناسب مصرف متوسط", "price": 2000,  "active": True, "type": "per_gb"},
+            {"id": 3, "name": "کانفیگ حجمی بالا",       "desc": "هر گیگابایت ۱٬۰۰۰ تومان | مناسب مصرف زیاد", "price": 1000,  "active": True, "type": "per_gb"},
         ]
         save_db(db)
     return db
@@ -101,10 +100,16 @@ async def product_detail(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("✅ خرید این محصول", callback_data=f"buy_{pid}")],
         [InlineKeyboardButton("🔙 برگشت به محصولات", callback_data="products")],
     ]
+    ptype = p.get("type", "fixed")
+    if ptype == "per_gb":
+        price_str = f"هر گیگابایت: *{p['price']:,} تومان*\nمثلاً ۱۰ گیگ = *{p['price']*10:,} تومان*"
+    else:
+        price_str = f"*{p['price']:,} تومان*"
+
     text = (
         f"📦 *{p['name']}*\n\n"
         f"📝 {p['desc']}\n\n"
-        f"💰 قیمت: *{p['price']:,} تومان*"
+        f"💰 قیمت: {price_str}"
     )
     await query.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(kb))
 
@@ -120,11 +125,24 @@ async def buy_product(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
         return
 
     ctx.user_data["pending_product"] = pid
+    ptype = p.get("type", "fixed")
+
+    if ptype == "per_gb":
+        price_info = (
+            f"قیمت: هر گیگابایت *{p['price']:,} تومان*\n"
+            f"مثلاً ۱۰ گیگ = *{p['price']*10:,} تومان*\n\n"
+            f"⚠️ لطفاً *تعداد گیگ* مورد نظرت رو هم در پیام رسید بنویس"
+        )
+    else:
+        price_info = f"مبلغ: *{p['price']:,} تومان*"
+
     text = (
         f"💳 *روش پرداخت:*\n\n"
-        f"مبلغ: *{p['price']:,} تومان*\n\n"
-        f"شماره کارت:\n`6219 8610 XXXX XXXX`\n\n"
-        f"بعد از واریز، رسید (اسکرین‌شات یا شماره پیگیری) رو اینجا بفرست 📸"
+        f"📦 {p['name']}\n"
+        f"{price_info}\n\n"
+        f"برای دریافت شماره کارت و نهایی کردن خرید به ادمین پیام بده:\n"
+        f"👤 @ph_am28\n\n"
+        f"بعد از پرداخت، رسید (اسکرین‌شات یا شماره پیگیری) رو *اینجا* بفرست 📸"
     )
     kb = [[InlineKeyboardButton("❌ انصراف", callback_data="products")]]
     await query.edit_message_text(text, parse_mode="Markdown", reply_markup=InlineKeyboardMarkup(kb))
@@ -323,7 +341,7 @@ async def support(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
     await query.edit_message_text(
         "📞 *پشتیبانی:*\n\n"
         "برای هر مشکلی مستقیم پیام بده:\n"
-        "@your_support_username",
+        "👤 @ph\_am28",
         parse_mode="Markdown",
         reply_markup=InlineKeyboardMarkup(kb)
     )
